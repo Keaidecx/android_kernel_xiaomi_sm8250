@@ -10,15 +10,16 @@ on:
         type: choice
         options:
           - alioth
+          - lmi
       ksu:
         description: 'Enable KernelSU (ReSukiSU)'
         required: true
         type: boolean
-        default: false
+        default: true
       target_os:
         description: 'Target OS (目标系统)'
         required: true
-        default: 'both'
+        default: 'miui'
         type: choice
         options:
           - aosp
@@ -28,11 +29,17 @@ on:
         description: 'Publish to GitHub Releases (发布到 Releases)'
         required: true
         type: boolean
-        default: false
+        default: true
+
+  schedule:
+    # Monday to Saturday at 12:00 UTC (8:00 PM Beijing Time)
+    - cron: '0 12 * * 1-6'
+    # Sunday at 14:10 UTC (10:10 PM Beijing Time)
+    - cron: '10 14 * * 0'
 
 jobs:
   build-kernel:
-    name: Build ${{ github.event.inputs.device }} | KSU:${{ github.event.inputs.ksu }} | OS:${{ github.event.inputs.target_os }}
+    name: Build ${{ github.event.inputs.device || 'alioth' }} | KSU:${{ github.event.inputs.ksu || true }} | OS:${{ github.event.inputs.target_os || 'miui' }}
     runs-on: ubuntu-latest
     
     permissions:
@@ -58,9 +65,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ccache_mikernel
-        key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device }}-${{ github.run_id }}
+        key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}
         restore-keys: |
-          ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device }}-
+          ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-
           ${{ runner.os }}-kernel-ccache-
 
     - name: Setup zyc-clang 16 Toolchain
@@ -74,7 +81,7 @@ jobs:
       run: |
         sed -i 's|^EXTRAVERSION =.*|EXTRAVERSION = -Ikun-KirinNova|' Makefile
         
-        find arch/arm64/configs -maxdepth 1 -type f -name "*defconfig" | while read file
+        find arch/arm64/configs -maxdepth 1 -type f -name "*defconfig" | while read -r file
         do
           sed -i '/CONFIG_LOCALVERSION_AUTO/d' "$file"
           echo 'CONFIG_LOCALVERSION_AUTO=n' >> "$file"
@@ -90,14 +97,20 @@ jobs:
       run: |
         chmod +x build_kernel.sh
         export LOCALVERSION=""
-        ARGS="${{ github.event.inputs.device }}"
         
-        if [ "${{ github.event.inputs.ksu }}" == "true" ]; then
+        # Handle default fallback values when triggered by schedule
+        DEVICE="${{ github.event.inputs.device || 'alioth' }}"
+        KSU="${{ github.event.inputs.ksu || 'true' }}"
+        TARGET_OS="${{ github.event.inputs.target_os || 'miui' }}"
+        
+        ARGS="$DEVICE"
+        
+        if [ "$KSU" == "true" ]; then
           ARGS="$ARGS ksu"
         fi
         
-        if [ "${{ github.event.inputs.target_os }}" != "both" ]; then
-          ARGS="$ARGS ${{ github.event.inputs.target_os }}"
+        if [ "$TARGET_OS" != "both" ]; then
+          ARGS="$ARGS $TARGET_OS"
         fi
         
         echo "Executing command: ./build_kernel.sh $ARGS"
@@ -106,21 +119,21 @@ jobs:
     - name: Upload Flashable ZIP (Artifact)
       uses: actions/upload-artifact@v4
       with:
-        name: DEBUG_APTKernel-${{ github.event.inputs.device }}-${{ github.event.inputs.target_os }}-${{ github.run_id }}
+        name: DEBUG_APTKernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.event.inputs.target_os || 'miui' }}-${{ github.run_id }}
         path: "*APTKernel_*.zip"
         compression-level: 0
 
     - name: Publish Release
-      if: ${{ github.event.inputs.release == 'true' }}
+      if: ${{ github.event.inputs.release != 'false' }}
       uses: softprops/action-gh-release@v2
       with:
         files: "*APTKernel_*.zip"
-        tag_name: kernel-${{ github.event.inputs.device }}-${{ github.run_id }}
-        name: "Kernel Build for ${{ github.event.inputs.device }} (${{ github.event.inputs.target_os }})"
+        tag_name: kernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}
+        name: "Kernel Build for ${{ github.event.inputs.device || 'alioth' }} (${{ github.event.inputs.target_os || 'miui' }})"
         body: |
           Automatic kernel build.
-          - **Device:** ${{ github.event.inputs.device }}
-          - **KernelSU:** ${{ github.event.inputs.ksu }}
-          - **Target OS:** ${{ github.event.inputs.target_os }}
+          - **Device:** ${{ github.event.inputs.device || 'alioth' }}
+          - **KernelSU:** ${{ github.event.inputs.ksu || 'true' }}
+          - **Target OS:** ${{ github.event.inputs.target_os || 'miui' }}
         draft: false
         prerelease: false
