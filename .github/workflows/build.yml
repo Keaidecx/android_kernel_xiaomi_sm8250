@@ -30,12 +30,17 @@ on:
       target_os:
         description: 'Target OS (目标系统)'
         required: true
-        type: choice
         default: 'both'
+        type: choice
         options:
           - aosp
           - miui
           - both
+      release:
+        description: 'Publish to GitHub Releases (发布到 Releases)'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   build-kernel:
@@ -107,9 +112,24 @@ jobs:
         echo "Executing command: ./build_kernel.sh $ARGS"
         ./build_kernel.sh $ARGS
 
-    - name: Upload Flashable ZIP
+    - name: Upload Flashable ZIP (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: DEBUG_APTKernel-${{ github.event.inputs.device }}-${{ github.event.inputs.target_os }}-${{ github.run_id }}
         path: "*APTKernel_*.zip"
         compression-level: 0
+
+    - name: Publish Release
+      if: ${{ github.event.inputs.release == 'true' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        files: "*APTKernel_*.zip"
+        tag_name: kernel-${{ github.event.inputs.device }}-${{ github.run_id }}
+        name: "Kernel Build for ${{ github.event.inputs.device }} (${{ github.event.inputs.target_os }})"
+        body: |
+          Automatic kernel build.
+          - **Device:** ${{ github.event.inputs.device }}
+          - **KernelSU:** ${{ github.event.inputs.ksu }}
+          - **Target OS:** ${{ github.event.inputs.target_os }}
+        draft: false
+        prerelease: false
