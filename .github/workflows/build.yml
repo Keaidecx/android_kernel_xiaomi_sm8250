@@ -34,8 +34,8 @@ on:
   schedule:
     # Monday to Saturday at 12:00 UTC (8:00 PM Beijing Time)
     - cron: '0 12 * * 1-6'
-    # Sunday at 14:10 UTC (10:10 PM Beijing Time)
-    - cron: '10 14 * * 0'
+    # Sunday at 14:20 UTC (10:20 PM Beijing Time)
+    - cron: '20 14 * * 0'
 
 jobs:
   build-kernel:
@@ -124,7 +124,7 @@ jobs:
         compression-level: 0
 
     - name: Publish Release
-      if: ${{ github.event.inputs.release != 'false' }}
+      if: ${{ github.event_name == 'schedule' || github.event.inputs.release != 'false' }}
       uses: softprops/action-gh-release@v2
       with:
         files: "*APTKernel_*.zip"
