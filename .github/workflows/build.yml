@@ -6,7 +6,7 @@ on:
       device:
         description: 'Target Device Code (设备代号)'
         required: true
-        default: 'lmi'
+        default: 'alioth'
         type: choice
         options:
           - alioth
@@ -31,109 +31,109 @@ on:
         type: boolean
         default: true
 
-  schedule:
-    # Monday to Saturday at 12:00 UTC (8:00 PM Beijing Time)
-    - cron: '0 12 * * 1-6'
-    # Sunday at 14:20 UTC (10:20 PM Beijing Time)
-    - cron: '15 14 * * 0'
+schedule:
+  # 周一至周六 12:13 UTC (北京时间 20:13) - 避开 00 分整点高峰
+  - cron: '13 12 * * 1-6'
+  # 周日 14:20 UTC (北京时间 22:20)
+  - cron: '55 14 * * 0'
 
 jobs:
   build-kernel:
     name: Build ${{ github.event.inputs.device || 'alioth' }} | KSU:${{ github.event.inputs.ksu || true }} | OS:${{ github.event.inputs.target_os || 'miui' }}
     runs-on: ubuntu-latest
-    
-    permissions:
-      contents: write
 
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
+    permissions:  
+      contents: write  
 
-    - name: Set up Environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y bc bison build-essential ccache curl flex gawk \
-          git gnupg gperf imagemagick libncurses-dev \
-          lib32readline-dev lib32z1-dev liblz4-tool \
-          libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync \
-          schedtool squashfs-tools xsltproc zip zlib1g-dev python3 \
-          dwarves libelf-dev
+    steps:  
+    - name: Checkout Repository  
+      uses: actions/checkout@v4  
+      with:  
+        fetch-depth: 1  
+
+    - name: Set up Environment  
+      run: |  
+        sudo apt-get update  
+        sudo apt-get install -y bc bison build-essential ccache curl flex gawk \  
+          git gnupg gperf imagemagick libncurses-dev \  
+          lib32readline-dev lib32z1-dev liblz4-tool \  
+          libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync \  
+          schedtool squashfs-tools xsltproc zip zlib1g-dev python3 \  
+          dwarves libelf-dev  
           
-    - name: Cache ccache
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/ccache_mikernel
-        key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}
-        restore-keys: |
-          ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-
-          ${{ runner.os }}-kernel-ccache-
+    - name: Cache ccache  
+      uses: actions/cache@v4  
+      with:  
+        path: ~/.cache/ccache_mikernel  
+        key: ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}  
+        restore-keys: |  
+          ${{ runner.os }}-kernel-ccache-${{ github.event.inputs.device || 'alioth' }}-  
+          ${{ runner.os }}-kernel-ccache-  
 
-    - name: Setup zyc-clang 16 Toolchain
-      run: |
-        mkdir -p $HOME/zyc-clang
-        cd $HOME/zyc-clang
-        wget -q https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz
-        tar -zxvf Clang-16.0.6-20260510.tar.gz
+    - name: Setup zyc-clang 16 Toolchain  
+      run: |  
+        mkdir -p $HOME/zyc-clang  
+        cd $HOME/zyc-clang  
+        wget -q https://github.com/ZyCromerZ/Clang/releases/download/16.0.6-20260510-release/Clang-16.0.6-20260510.tar.gz  
+        tar -zxvf Clang-16.0.6-20260510.tar.gz  
 
-    - name: Modify kernel version string (Remove cip/st extra suffix)
-      run: |
-        sed -i 's|^EXTRAVERSION =.*|EXTRAVERSION = -Ikun-KirinNova|' Makefile
-        
-        find arch/arm64/configs -maxdepth 1 -type f -name "*defconfig" | while read -r file
-        do
-          sed -i '/CONFIG_LOCALVERSION_AUTO/d' "$file"
-          echo 'CONFIG_LOCALVERSION_AUTO=n' >> "$file"
-          sed -i '/CONFIG_LOCALVERSION=/d' "$file"
-          echo 'CONFIG_LOCALVERSION=""' >> "$file"
-        done
-        
-        echo '#!/bin/sh' > scripts/setlocalversion
-        echo 'echo ""' >> scripts/setlocalversion
-        chmod +x scripts/setlocalversion
+    - name: Modify kernel version string (Remove cip/st extra suffix)  
+      run: |  
+        sed -i 's|^EXTRAVERSION =.*|EXTRAVERSION = -Ikun-KirinNova|' Makefile  
+          
+        find arch/arm64/configs -maxdepth 1 -type f -name "*defconfig" | while read -r file  
+        do  
+          sed -i '/CONFIG_LOCALVERSION_AUTO/d' "$file"  
+          echo 'CONFIG_LOCALVERSION_AUTO=n' >> "$file"  
+          sed -i '/CONFIG_LOCALVERSION=/d' "$file"  
+          echo 'CONFIG_LOCALVERSION=""' >> "$file"  
+        done  
+          
+        echo '#!/bin/sh' > scripts/setlocalversion  
+        echo 'echo ""' >> scripts/setlocalversion  
+        chmod +x scripts/setlocalversion  
 
-    - name: Run Build Script
-      run: |
-        chmod +x build_kernel.sh
-        export LOCALVERSION=""
-        
-        # Handle default fallback values when triggered by schedule
-        DEVICE="${{ github.event.inputs.device || 'alioth' }}"
-        KSU="${{ github.event.inputs.ksu || 'true' }}"
-        TARGET_OS="${{ github.event.inputs.target_os || 'miui' }}"
-        
-        ARGS="$DEVICE"
-        
-        if [ "$KSU" == "true" ]; then
-          ARGS="$ARGS ksu"
-        fi
-        
-        if [ "$TARGET_OS" != "both" ]; then
-          ARGS="$ARGS $TARGET_OS"
-        fi
-        
-        echo "Executing command: ./build_kernel.sh $ARGS"
-        ./build_kernel.sh $ARGS
+    - name: Run Build Script  
+      run: |  
+        chmod +x build_kernel.sh  
+        export LOCALVERSION=""  
+          
+        # Handle default fallback values when triggered by schedule  
+        DEVICE="${{ github.event.inputs.device || 'alioth' }}"  
+        KSU="${{ github.event.inputs.ksu || 'true' }}"  
+        TARGET_OS="${{ github.event.inputs.target_os || 'miui' }}"  
+          
+        ARGS="$DEVICE"  
+          
+        if [ "$KSU" == "true" ]; then  
+          ARGS="$ARGS ksu"  
+        fi  
+          
+        if [ "$TARGET_OS" != "both" ]; then  
+          ARGS="$ARGS $TARGET_OS"  
+        fi  
+          
+        echo "Executing command: ./build_kernel.sh $ARGS"  
+        ./build_kernel.sh $ARGS  
 
-    - name: Upload Flashable ZIP (Artifact)
-      uses: actions/upload-artifact@v4
-      with:
-        name: DEBUG_APTKernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.event.inputs.target_os || 'miui' }}-${{ github.run_id }}
-        path: "*APTKernel_*.zip"
-        compression-level: 0
+    - name: Upload Flashable ZIP (Artifact)  
+      uses: actions/upload-artifact@v4  
+      with:  
+        name: DEBUG_APTKernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.event.inputs.target_os || 'miui' }}-${{ github.run_id }}  
+        path: "*APTKernel_*.zip"  
+        compression-level: 0  
 
-    - name: Publish Release
-      if: ${{ github.event_name == 'schedule' || github.event.inputs.release != 'false' }}
-      uses: softprops/action-gh-release@v2
-      with:
-        files: "*APTKernel_*.zip"
-        tag_name: kernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}
-        name: "Kernel Build for ${{ github.event.inputs.device || 'alioth' }} (${{ github.event.inputs.target_os || 'miui' }})"
-        body: |
-          Automatic kernel build.
-          - **Device:** ${{ github.event.inputs.device || 'alioth' }}
-          - **KernelSU:** ${{ github.event.inputs.ksu || 'true' }}
-          - **Target OS:** ${{ github.event.inputs.target_os || 'miui' }}
-        draft: false
+    - name: Publish Release  
+      if: ${{ github.event_name == 'schedule' || github.event.inputs.release != 'false' }}  
+      uses: softprops/action-gh-release@v2  
+      with:  
+        files: "*APTKernel_*.zip"  
+        tag_name: kernel-${{ github.event.inputs.device || 'alioth' }}-${{ github.run_id }}  
+        name: "Kernel Build for ${{ github.event.inputs.device || 'alioth' }} (${{ github.event.inputs.target_os || 'miui' }})"  
+        body: |  
+          Automatic kernel build.  
+          - **Device:** ${{ github.event.inputs.device || 'alioth' }}  
+          - **KernelSU:** ${{ github.event.inputs.ksu || 'true' }}  
+          - **Target OS:** ${{ github.event.inputs.target_os || 'miui' }}  
+        draft: false  
         prerelease: false
