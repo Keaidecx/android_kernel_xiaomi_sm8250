@@ -10,18 +10,6 @@ on:
         type: choice
         options:
           - alioth
-          - apollo
-          - cas
-          - cmi
-          - dagu
-          - elish
-          - enuma
-          - lmi
-          - munch
-          - pipa
-          - psyche
-          - thyme
-          - umi
       ksu:
         description: 'Enable KernelSU (ReSukiSU)'
         required: true
