@@ -21,7 +21,7 @@ This repository is forked from AstideLabs/android_kernel_xiaomi_sm8250. Some com
 ---
 
 ## Features
-This kernel supports ReSukiSU & SuSFS & Droidspaces. Please install the ReSukiSU Manager by yourself. The NoKernelSU version supports Magisk and APatch (and their forks).
+This kernel supports ReSukiSU & SuSFS & Droidspaces. The NoKernelSU version supports Magisk and APatch (and their forks).
 
 The prebuilt kernel in the Release section is compiled from the android17-aptusitu branch, and should work on stock MIUI/HyperOS as well as third-party AOSP-based ROMs for Android 11–17.
 
