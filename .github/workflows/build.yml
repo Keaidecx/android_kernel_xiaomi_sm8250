@@ -1,6 +1,9 @@
 name: Build Kernel
 
 on:
+  push:
+    branches:
+      - android17-aptusitu
   workflow_dispatch:
     inputs:
       device:
@@ -98,7 +101,7 @@ jobs:
         chmod +x build_kernel.sh  
         export LOCALVERSION=""  
           
-        # Handle default fallback values when triggered by schedule  
+        # Handle default fallback values when triggered by schedule or push  
         DEVICE="${{ github.event.inputs.device || 'alioth' }}"  
         KSU="${{ github.event.inputs.ksu || 'true' }}"  
         TARGET_OS="${{ github.event.inputs.target_os || 'miui' }}"  
@@ -124,7 +127,7 @@ jobs:
         compression-level: 0  
 
     - name: Publish Release  
-      if: ${{ github.event_name == 'schedule' || github.event.inputs.release != 'false' }}  
+      if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.release != 'false' }}  
       uses: softprops/action-gh-release@v2  
       with:  
         files: "*APTKernel_*.zip"  
