@@ -31,11 +31,11 @@ on:
         type: boolean
         default: true
 
-schedule:
-  # 周一至周六 12:13 UTC (北京时间 20:13) - 避开 00 分整点高峰
-  - cron: '13 12 * * 1-6'
-  # 周日 14:20 UTC (北京时间 22:20)
-  - cron: '55 14 * * 0'
+  schedule:
+    # 周一至周六 12:13 UTC (北京时间 20:13) - 避开 00 分整点高峰
+    - cron: '13 12 * * 1-6'
+    # 周日 14:55 UTC (北京时间 22:55)
+    - cron: '59 14 * * 0'
 
 jobs:
   build-kernel:
