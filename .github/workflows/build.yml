@@ -35,7 +35,7 @@ on:
     # Monday to Saturday at 12:00 UTC (8:00 PM Beijing Time)
     - cron: '0 12 * * 1-6'
     # Sunday at 14:20 UTC (10:20 PM Beijing Time)
-    - cron: '20 14 * * 0'
+    - cron: '15 14 * * 0'
 
 jobs:
   build-kernel:
