@@ -73,7 +73,7 @@ static int statfs_by_dentry(struct dentry *dentry, struct kstatfs *buf)
 
 #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 extern bool susfs_is_inode_sus_kstat(struct inode *inode, bool *out_is_fuse);
-extern int susfs_statfs_by_dentry(struct dentry *dentry, struct kstatfs *buf, bool *is_fuse);
+extern int susfs_statfs_by_dentry(struct dentry *dentry, struct kstatfs *buf);
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 extern struct vfsmount *susfs_get_non_sus_vfsmnt_from_vfsmnt(struct vfsmount *vfsmnt);
@@ -87,9 +87,8 @@ int vfs_statfs(const struct path *path, struct kstatfs *buf)
 		struct inode *inode = d_backing_inode(path->dentry);
 		bool is_fuse = false;
 		if (susfs_is_inode_sus_kstat(inode, &is_fuse)) {
-			// here we do not call calculate_f_flags() as buf->f_flags will be spoofed
-			// by susfs_statfs_by_dentry().
-			return susfs_statfs_by_dentry(path->dentry, buf, &is_fuse);
+			// buf->f_flags will be spoofed by susfs_statfs_by_dentry()
+			return susfs_statfs_by_dentry(path->dentry, buf);
 		}
 	}
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
