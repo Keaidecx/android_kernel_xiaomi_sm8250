@@ -39,6 +39,9 @@
 #include <linux/fs_context.h>
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 #include <linux/susfs_def.h>
+#ifndef DEFAULT_KSU_MNT_MINOR_DEV
+#define DEFAULT_KSU_MNT_MINOR_DEV 200
+#endif
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 #include <linux/mount.h>
 #include "internal.h"
