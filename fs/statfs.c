@@ -326,7 +326,6 @@ static int put_compat_statfs(struct compat_statfs __user *ubuf, struct kstatfs *
 COMPAT_SYSCALL_DEFINE2(statfs, const char __user *, pathname, struct compat_statfs __user *, buf)
 {
 	struct kstatfs tmp;
-	int error = user_path_at(AT_FDCWD, pathname, LOOKUP_FOLLOW|LOOKUP_AUTOMOUNT, &path) ? : vfs_statfs(&path, &tmp); // 维持原有实现风格
 	int error = user_statfs(pathname, &tmp);
 	if (!error)
 		error = put_compat_statfs(buf, &tmp);
