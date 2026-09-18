@@ -92,7 +92,6 @@ static int susfs_statfs_by_dentry(struct dentry *dentry, struct kstatfs *buf, bo
     if (retval)
         return retval;
         
-    /* 已根据最新补丁修复：若未成功伪装则直接跳转至 bypass_orig_flow[cite: 1] */
     if (!susfs_sus_kstat_spoof_vfs_statfs(d_backing_inode(dentry), buf, is_fuse))
         goto bypass_orig_flow;
 
