@@ -1093,6 +1093,11 @@ void emergency_thaw_all(void)
 
 static DEFINE_IDA(unnamed_dev_ida);
 
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+extern bool susfs_is_current_ksu_domain(void);
+extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+
 /**
  * get_anon_bdev - Allocate a block device for filesystems which don't have one.
  * @p: Pointer to a dev_t.
