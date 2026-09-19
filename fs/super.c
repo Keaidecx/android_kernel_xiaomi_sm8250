@@ -37,15 +37,23 @@
 #include <linux/lockdep.h>
 #include <linux/user_namespace.h>
 #include <linux/fs_context.h>
-#ifdef CONFIG_KSU_SUSFS
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 #include <linux/susfs_def.h>
 #ifndef DEFAULT_KSU_MNT_MINOR_DEV
 #define DEFAULT_KSU_MNT_MINOR_DEV 200
 #endif
-#endif // #ifdef CONFIG_KSU_SUSFS
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 #include <linux/mount.h>
 #include "internal.h"
 
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+extern bool susfs_is_current_ksu_domain(void);
+extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+
+static int thaw_super_locked(struct super_block *sb);
+
+static LIST_HEAD(super_blocks);
 static DEFINE_SPINLOCK(sb_lock);
 
 static char *sb_writers_name[SB_FREEZE_LEVELS] = {
@@ -1093,15 +1101,6 @@ void emergency_thaw_all(void)
 
 static DEFINE_IDA(unnamed_dev_ida);
 
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-extern bool susfs_is_current_ksu_domain(void);
-extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-
-static int thaw_super_locked(struct super_block *sb);
-
-static LIST_HEAD(super_blocks);
-
 /**
  * get_anon_bdev - Allocate a block device for filesystems which don't have one.
  * @p: Pointer to a dev_t.
@@ -1115,8 +1114,8 @@ static LIST_HEAD(super_blocks);
  */
 int get_anon_bdev(dev_t *p)
 {
-    int dev;
-
+	int dev;
+	
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
     if (static_branch_unlikely(&susfs_is_sdcard_android_data_not_decrypted)) {
         if (susfs_is_current_ksu_domain()) {
@@ -1133,10 +1132,10 @@ int get_anon_bdev(dev_t *p)
     }
 #endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 
-    /*
-     * Many userspace utilities consider an FSID of 0 invalid.
-     * Always return at least 1 from get_anon_bdev.
-     */
+	/*
+	 * Many userspace utilities consider an FSID of 0 invalid.
+	 * Always return at least 1 from get_anon_bdev.
+	 */
 	dev = ida_alloc_range(&unnamed_dev_ida, 1, (1 << MINORBITS) - 1,
 			GFP_ATOMIC);
 	if (dev == -ENOSPC)
