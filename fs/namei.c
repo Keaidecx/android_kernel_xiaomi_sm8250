@@ -3775,6 +3775,7 @@ static int do_tmpfile(struct nameidata *nd, unsigned flags,
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
+	struct filename *old_name = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct dentry *child;
 	struct path path;
@@ -3790,6 +3791,7 @@ static int do_tmpfile(struct nameidata *nd, unsigned flags,
 			/* filename_lookup() consumes fake_filename */
 			error = filename_lookup(old_dfd, fake_filename, flags | LOOKUP_DIRECTORY,
 						&fake_path, NULL);
+			putname(fake_filename);			
 			path_put(&path);
 			if (unlikely(error))
 				return error;
@@ -3827,6 +3829,7 @@ static int do_o_path(struct nameidata *nd, unsigned flags, struct file *file)
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
+	struct filename *old_name = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct path path;
 	int error = path_lookupat(nd, flags, &path);
@@ -3841,6 +3844,7 @@ static int do_o_path(struct nameidata *nd, unsigned flags, struct file *file)
 
                 /* filename_lookup() consumes fake_filename */
                 error = filename_lookup(old_dfd, fake_filename, flags, &fake_path, NULL);
+				putname(fake_filename);
                 path_put(&path);
                 if (unlikely(error))
                     return error;
@@ -3861,6 +3865,7 @@ static struct file *path_openat(struct nameidata *nd,
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
+	struct filename *old_name = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct file *file;
 	int error;
@@ -3902,8 +3907,10 @@ static struct file *path_openat(struct nameidata *nd,
 		terminate_walk(nd);
 	}
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
-	if (fake_filename && !IS_ERR(fake_filename))
+	if (fake_filename && !IS_ERR(fake_filename)) {
+		nd->name = old_name;
 		putname(fake_filename);
+	}
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	if (likely(!error)) {
 		if (likely(file->f_mode & FMODE_OPENED))
