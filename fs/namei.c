@@ -3775,7 +3775,7 @@ static int do_tmpfile(struct nameidata *nd, unsigned flags,
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
-	struct filename *old_name = nd->name;
+	struct filename *old_name __maybe_unused = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct dentry *child;
 	struct path path;
@@ -3829,7 +3829,7 @@ static int do_o_path(struct nameidata *nd, unsigned flags, struct file *file)
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
-	struct filename *old_name = nd->name;
+	struct filename *old_name __maybe_unused = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct path path;
 	int error = path_lookupat(nd, flags, &path);
@@ -3865,7 +3865,7 @@ static struct file *path_openat(struct nameidata *nd,
 #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	int old_dfd = nd->dfd;
 	struct filename *fake_filename = NULL;
-	struct filename *old_name = nd->name;
+	struct filename *old_name __maybe_unused = nd->name;
 #endif // #ifdef CONFIG_KSU_SUSFS_OPEN_REDIRECT
 	struct file *file;
 	int error;
