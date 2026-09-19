@@ -252,9 +252,10 @@ SYSCALL_DEFINE3(statfs64, const char __user *, pathname, size_t, sz, struct stat
 {
     struct kstatfs st;
     int error;
+
     if (sz != sizeof(*buf))
         return -EINVAL;
-    error = user_path_at(AT_FDCWD, pathname, LOOKUP_FOLLOW|LOOKUP_AUTOMOUNT, &path);
+
     error = user_statfs(pathname, &st);
     if (!error)
         error = do_statfs64(&st, buf);
