@@ -37,23 +37,15 @@
 #include <linux/lockdep.h>
 #include <linux/user_namespace.h>
 #include <linux/fs_context.h>
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#ifdef CONFIG_KSU_SUSFS
 #include <linux/susfs_def.h>
 #ifndef DEFAULT_KSU_MNT_MINOR_DEV
 #define DEFAULT_KSU_MNT_MINOR_DEV 200
 #endif
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#endif // #ifdef CONFIG_KSU_SUSFS
 #include <linux/mount.h>
 #include "internal.h"
 
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-extern bool susfs_is_current_ksu_domain(void);
-extern struct static_key_true susfs_is_sdcard_android_data_not_decrypted;
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
-
-static int thaw_super_locked(struct super_block *sb);
-
-static LIST_HEAD(super_blocks);
 static DEFINE_SPINLOCK(sb_lock);
 
 static char *sb_writers_name[SB_FREEZE_LEVELS] = {
